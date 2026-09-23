@@ -2,9 +2,12 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppConfig } from '../config.js';
 import type { AuthService } from './types.js';
+import type { ApiTokenScope, ApiTokenService } from './api-tokens.js';
 
 export interface RequireAdmin {
-  requireAdminApi: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+  requireLinksRead: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+  requireLinksWrite: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+  requireStatsRead: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   requireAdminHtml: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
 }
 
@@ -60,15 +63,29 @@ function legacyTokenMatches(config: AppConfig, token: string | null): boolean {
   return token === config.ADMIN_TOKEN;
 }
 
-export function createRequireAdmin(auth: AuthService, config: AppConfig): RequireAdmin {
-  async function requireAdminApi(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    if (await trySession(auth, config, request)) {
-      return;
-    }
-    if (legacyTokenMatches(config, extractLegacyToken(request))) {
-      return;
-    }
-    reply.code(401).send({ error: 'Unauthorized' });
+export function createRequireAdmin(auth: AuthService, config: AppConfig, apiTokens?: Pick<ApiTokenService, 'getByRawToken'>): RequireAdmin {
+  function requireApiScope(scope: ApiTokenScope) {
+    return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+      const authorization = request.headers.authorization;
+      if (authorization) {
+        const rawToken = extractLegacyToken(request);
+        if (legacyTokenMatches(config, rawToken)) return;
+        const token = rawToken?.startsWith('lst_') ? await apiTokens?.getByRawToken(rawToken) : null;
+        if (!token) {
+          reply.code(401).send({ error: 'Unauthorized' });
+          return;
+        }
+        if (!token.scopes.includes(scope)) {
+          reply.code(403).send({ error: 'Insufficient token scope' });
+          return;
+        }
+        request.automationToken = { id: token.id, name: token.name };
+        request.log.info({ tokenId: token.id, scope }, 'automation token authorized');
+        return;
+      }
+      if (await trySession(auth, config, request)) return;
+      reply.code(401).send({ error: 'Unauthorized' });
+    };
   }
 
   async function requireAdminHtml(request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -78,5 +95,10 @@ export function createRequireAdmin(auth: AuthService, config: AppConfig): Requir
     reply.redirect('/admin/login');
   }
 
-  return { requireAdminApi, requireAdminHtml };
+  return {
+    requireLinksRead: requireApiScope('links:read'),
+    requireLinksWrite: requireApiScope('links:write'),
+    requireStatsRead: requireApiScope('stats:read'),
+    requireAdminHtml,
+  };
 }

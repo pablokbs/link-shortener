@@ -10,6 +10,7 @@
     "seed": "tsx src/scripts/seed.ts",
     "create-admin": "tsx src/scripts/create-admin.ts",
     "rotate-credentials": "tsx src/scripts/rotate-credentials.ts",
+    "api-token": "tsx src/scripts/api-token.ts",
     "test": "node --test --import tsx",
     "check": "tsc --noEmit",
     "db:push": "drizzle-kit push",
