@@ -11,6 +11,7 @@ import { getBaseUrl, type AppConfig } from './config.js';
 import { registerDashboard } from './admin/dashboard.handlers.js';
 import type { AuthService } from './auth/types.js';
 import { createRequireAdmin } from './auth/middleware.js';
+import type { ApiTokenService } from './auth/api-tokens.js';
 import { registerAuth } from './auth/handlers.js';
 import { csrfFailureRedirect, validateCsrfToken } from './auth/csrf.js';
 import { getCountryFromIP } from './lib/geo.js';
@@ -103,9 +104,9 @@ export type RecentClickRow = {
   linkDestinationUrl: string;
 };
 
-export function createApp(config: AppConfig, links: LinkService, auth: AuthService) {
+export function createApp(config: AppConfig, links: LinkService, auth: AuthService, apiTokens?: Pick<ApiTokenService, 'getByRawToken'>) {
   const app = Fastify({ logger: true, trustProxy: true });
-  const guards = createRequireAdmin(auth, config);
+  const guards = createRequireAdmin(auth, config, apiTokens);
   const registerHelmet = async () => {
     if (config.SHORTENER_SCHEME === 'http') {
       await app.register(helmet, { contentSecurityPolicy: false });
@@ -160,7 +161,7 @@ export function createApp(config: AppConfig, links: LinkService, auth: AuthServi
     };
   });
 
-  app.post('/api/links', { preHandler: guards.requireAdminApi }, async (request, reply) => {
+  app.post('/api/links', { preHandler: guards.requireLinksWrite }, async (request, reply) => {
     const body = request.body as {
       slug?: string;
       destinationUrl?: string;
@@ -185,7 +186,7 @@ export function createApp(config: AppConfig, links: LinkService, auth: AuthServi
       redirectStatusCode: normalizeRedirectCode(body.redirectStatusCode, config.REDIRECT_STATUS_CODE),
       title: body.title?.trim() || null,
       description: body.description?.trim() || null,
-      createdBy: body.createdBy?.trim() || null,
+      createdBy: request.automationToken ? `token:${request.automationToken.id}` : body.createdBy?.trim() || null,
       expiresAt: parseDateTimeLocal(body.expiresAt),
     });
 
@@ -195,7 +196,7 @@ export function createApp(config: AppConfig, links: LinkService, auth: AuthServi
     });
   });
 
-  app.get('/api/links/:id', { preHandler: guards.requireAdminApi }, async (request, reply) => {
+  app.get('/api/links/:id', { preHandler: guards.requireLinksRead }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const link = await links.getLinkById(id);
     if (!link) {
@@ -208,7 +209,7 @@ export function createApp(config: AppConfig, links: LinkService, auth: AuthServi
     };
   });
 
-  app.patch('/api/links/:id', { preHandler: guards.requireAdminApi }, async (request, reply) => {
+  app.patch('/api/links/:id', { preHandler: guards.requireLinksWrite }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = request.body as {
       slug?: string;
@@ -227,7 +228,7 @@ export function createApp(config: AppConfig, links: LinkService, auth: AuthServi
       ...(body.redirectStatusCode !== undefined ? { redirectStatusCode: normalizeRedirectCode(body.redirectStatusCode, config.REDIRECT_STATUS_CODE) } : {}),
       ...(body.title !== undefined ? { title: body.title?.trim() ?? null } : {}),
       ...(body.description !== undefined ? { description: body.description?.trim() ?? null } : {}),
-      ...(body.createdBy !== undefined ? { createdBy: body.createdBy?.trim() ?? null } : {}),
+      ...(!request.automationToken && body.createdBy !== undefined ? { createdBy: body.createdBy?.trim() ?? null } : {}),
       ...(body.expiresAt !== undefined ? { expiresAt: parseDateTimeLocal(body.expiresAt) } : {}),
       ...(body.status !== undefined ? { status: body.status } : {}),
     });
@@ -242,7 +243,7 @@ export function createApp(config: AppConfig, links: LinkService, auth: AuthServi
     };
   });
 
-  app.delete('/api/links/:id', { preHandler: guards.requireAdminApi }, async (request, reply) => {
+  app.delete('/api/links/:id', { preHandler: guards.requireLinksWrite }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const disabled = await links.disableLink(id);
     if (!disabled) {
@@ -252,7 +253,7 @@ export function createApp(config: AppConfig, links: LinkService, auth: AuthServi
     return reply.code(204).send();
   });
 
-  app.get('/api/links/:id/stats', { preHandler: guards.requireAdminApi }, async (request, reply) => {
+  app.get('/api/links/:id/stats', { preHandler: guards.requireStatsRead }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const stats = await links.getLinkStats(id);
     if (!stats) {
