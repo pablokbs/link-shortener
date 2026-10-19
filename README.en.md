@@ -329,6 +329,7 @@ See [SECURITY.md](SECURITY.md) for supported versions, how to report vulnerabili
 - [Roadmap](docs/roadmap.md)
 - [Decision log](docs/decisions/0001-stack.md)
 - [Auth ADR](docs/decisions/auth.md)
+- [Automation and agent access](docs/automation.md)
 
 ## License
 

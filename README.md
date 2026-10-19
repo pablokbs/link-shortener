@@ -151,6 +151,7 @@ Los datos persistentes viven en volúmenes de Docker. No uses `down -v` salvo qu
 - Vencimiento, título, descripción y metadatos por enlace.
 - Analíticas globales y por enlace: series temporales, países, referrers y clics recientes.
 - API JSON para automatización.
+- Tokens de automatización revocables con permisos separados de lectura, escritura y estadísticas; ver [acceso para agentes](docs/automation.md).
 - Captura de IP respetuosa de la privacidad: sólo se guarda un hash.
 
 ## Arquitectura
@@ -246,6 +247,7 @@ El comando remoto debe descargar la imagen o el código nuevo y reiniciar el sta
 - [Roadmap](docs/roadmap.md)
 - [Decisiones técnicas](docs/decisions/0001-stack.md)
 - [Autenticación](docs/decisions/auth.md)
+- [Automatización y agentes](docs/automation.md)
 - [Contribuir](CONTRIBUTING.md)
 
 ## Licencia

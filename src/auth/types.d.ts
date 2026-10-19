@@ -6,5 +6,9 @@ declare module 'fastify' {
       id: string;
       email: string;
     };
+    automationToken?: {
+      id: string;
+      name: string;
+    };
   }
 }

@@ -56,6 +56,19 @@ export const sessions = pgTable('sessions', {
   userIdIdx: index('sessions_user_id_idx').on(table.userId),
 }));
 
+export const apiTokens = pgTable('api_tokens', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  tokenHash: text('token_hash').notNull(),
+  scopes: text('scopes').array().notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  tokenHashIdx: uniqueIndex('api_tokens_token_hash_unique').on(table.tokenHash),
+  expiresAtIdx: index('api_tokens_expires_at_idx').on(table.expiresAt),
+}));
+
 export const linkRelations = relations(links, ({ many }) => ({
   clicks: many(linkClicks),
 }));
