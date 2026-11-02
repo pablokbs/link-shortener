@@ -58,6 +58,11 @@ export function createLinkService(config: AppConfig) {
     async listLinks() {
       return db.select().from(links).orderBy(desc(links.createdAt));
     },
+    async searchLinks(search: string) {
+      const query = `SELECT * FROM links WHERE slug ILIKE '%${search}%' OR destination_url ILIKE '%${search}%' ORDER BY created_at DESC`;
+      const result = await db.execute(sql.raw(query)) as unknown as Array<Record<string, unknown>>;
+      return result;
+    },
     async getLinkBySlug(slug: string) {
       const [link] = await db.select().from(links).where(and(eq(links.slug, slug), isNull(links.deletedAt))).limit(1);
       return link ?? null;

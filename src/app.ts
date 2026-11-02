@@ -59,6 +59,7 @@ export type LinkStats = {
 
 export type LinkService = {
   listLinks(): Promise<LinkRecord[]>;
+  searchLinks(search: string): Promise<Array<Record<string, unknown>>>;
   getLinkBySlug(slug: string): Promise<LinkRecord | null>;
   getLinkById(id: string): Promise<LinkRecord | null>;
   createLink(input: {
@@ -152,8 +153,10 @@ export function createApp(config: AppConfig, links: LinkService, auth: AuthServi
     baseUrl: getBaseUrl(config),
   }));
 
-  app.get('/api/links', async () => {
-    const items = await links.listLinks();
+  app.get('/api/links', async (request) => {
+    const { search } = request.query as { search?: string };
+    const query = typeof search === 'string' ? search.trim() : '';
+    const items = query ? await links.searchLinks(query) : await links.listLinks();
     return {
       items,
       baseUrl: getBaseUrl(config),

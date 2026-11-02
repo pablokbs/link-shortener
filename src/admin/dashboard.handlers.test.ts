@@ -55,6 +55,9 @@ function makeLinkService(link: LinkRecord | null = null, stats: LinkStats | null
     async listLinks() {
       return link ? [link] : [];
     },
+    async searchLinks() {
+      return [];
+    },
     async getLinkBySlug() {
       return link;
     },
@@ -302,6 +305,7 @@ describe('dashboard handlers', () => {
     });
     const service: LinkService = {
       async listLinks() { return [link]; },
+      async searchLinks() { return []; },
       async getLinkBySlug() { return link; },
       async getLinkById() { return link; },
       async createLink(input) { return makeLink(input as Partial<LinkRecord>); },

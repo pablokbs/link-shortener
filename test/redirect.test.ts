@@ -55,6 +55,9 @@ function makeService(
     async listLinks() {
       return link ? [link] : [];
     },
+    async searchLinks() {
+      return [];
+    },
     async getLinkBySlug() {
       return link;
     },

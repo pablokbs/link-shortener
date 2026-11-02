@@ -42,6 +42,9 @@ function makeServiceThatThrows(message: string): LinkService {
     async listLinks() {
       throw Object.assign(new Error(message), { statusCode: 500 });
     },
+    async searchLinks() {
+      return [];
+    },
     async getLinkBySlug() {
       return null;
     },
@@ -70,6 +73,9 @@ function makeServiceThatThrows(message: string): LinkService {
 function makeServiceForStats(): LinkService {
   return {
     async listLinks() {
+      return [];
+    },
+    async searchLinks() {
       return [];
     },
     async getLinkBySlug() {

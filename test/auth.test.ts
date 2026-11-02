@@ -58,6 +58,9 @@ function makeLinkService(link: LinkRecord | null = null): LinkService {
     async listLinks() {
       return link ? [link] : [];
     },
+    async searchLinks() {
+      return [];
+    },
     async getLinkBySlug() {
       return link;
     },
